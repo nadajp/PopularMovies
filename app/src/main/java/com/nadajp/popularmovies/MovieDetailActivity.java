@@ -6,7 +6,10 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.nadajp.popularmovies.utils.Utils;
 
-
+/**
+ * Created by nadajp on 7/13/15.
+ * Activity that holds the movie details fragment, used to pass movie data between fragments
+ */
 public class MovieDetailActivity extends AppCompatActivity {
 
     public static final String LOG_TAG = "MovieDetailActivity";

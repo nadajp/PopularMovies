@@ -5,14 +5,15 @@ import android.os.Parcelable;
 
 /**
  * Created by nadajp on 7/14/15.
+ * Movie object, used to pass movie data between fragments
  */
 public class Movie implements Parcelable {
+
     public static final Parcelable.Creator<Movie> CREATOR
             = new Parcelable.Creator<Movie>() {
         public Movie createFromParcel(Parcel in) {
             return new Movie(in);
         }
-
         public Movie[] newArray(int size) {
             return new Movie[size];
         }

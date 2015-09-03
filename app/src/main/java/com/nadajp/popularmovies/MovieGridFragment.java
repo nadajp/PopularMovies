@@ -30,6 +30,7 @@ import java.net.URL;
 import java.util.ArrayList;
 
 /**
+ * Created by nadajp on 7/13/15.
  * Main fragment, which displays the movie image grid
  */
 public class MovieGridFragment extends Fragment implements AdapterView.OnItemClickListener {
@@ -48,7 +49,7 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         super.onCreate(savedInstanceState);
         mSortType = Utils.getSortType(this.getActivity(), 0);
         if (savedInstanceState == null || !savedInstanceState.containsKey(Utils.MOVIES_KEY)) {
-            mMovies = new ArrayList();
+            mMovies = new ArrayList<>();
         } else {
             mMovies = savedInstanceState.getParcelableArrayList(Utils.MOVIES_KEY);
         }
@@ -84,15 +85,13 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     }
 
     private String getSettingsText() {
-        String settingsText = mSortType == 0 ? getString(R.string.action_sort_rating)
+        return mSortType == 0 ? getString(R.string.action_sort_rating)
                 : getString(R.string.action_sort_popular);
-        return settingsText;
     }
 
     private String getTitle() {
-        String title = mSortType == 0 ? getString(R.string.title_most_popular)
+        return mSortType == 0 ? getString(R.string.title_most_popular)
                 : getString(R.string.title_top_rated);
-        return title;
     }
 
     @Override
@@ -185,7 +184,7 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
                             + API_KEY);
                 }
 
-                Log.i(LOG_TAG, "URI: " + url.toString());
+                //Log.i(LOG_TAG, "URI: " + url.toString());
                 // Create the request to moviedb api and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");

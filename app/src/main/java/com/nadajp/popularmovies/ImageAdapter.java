@@ -1,7 +1,6 @@
 package com.nadajp.popularmovies;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -20,32 +19,10 @@ public class ImageAdapter extends BaseAdapter {
     private static final String LOG_TAG = "ImageAdapter";
     private Context mContext;
     private ArrayList<Movie> mMovies = null;
-    private String[] mUrls = null;
-    private String[] mIds = null;
 
     public ImageAdapter(Context c, ArrayList<Movie> movies) {
         mContext = c;
         mMovies = movies;
-    }
-
-    public ImageAdapter(Context c, String[] paths, String[] ids) {
-        mContext = c;
-        if (paths != null) {
-            setPaths(paths);
-        }
-        mIds = ids;
-    }
-
-    public void setPaths(String[] paths) {
-        mUrls = new String[paths.length];
-        for (int i = 0; i < paths.length; i++) {
-            mUrls[i] = "http://image.tmdb.org/t/p/w185/" + paths[i];
-            Log.v(LOG_TAG, "URL: " + mUrls[i]);
-        }
-    }
-
-    public void setIds(String[] ids) {
-        mIds = ids;
     }
 
     public void setMovies(ArrayList<Movie> movies) {
