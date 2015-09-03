@@ -20,13 +20,6 @@ public class MovieDetailFragment extends Fragment {
     public static final String LOG_TAG = "MovieDetailFragment";
     public static final String BASE_URL = "http://image.tmdb.org/t/p/w342/";
 
-    public static final String ARG_MOVIE_ID = "id";
-    public static final String ARG_MOVIE_TITLE = "movie_title";
-    public static final String ARG_RELEASE_DATE = "release_date";
-    public static final String ARG_RATING = "rating";
-    public static final String ARG_SYNOPSIS = "synopsis";
-    public static final String ARG_POSTER_PATH = "poster_path";
-
     // UI elements
     ImageView mImgPoster;
     TextView mTxtTitle;
