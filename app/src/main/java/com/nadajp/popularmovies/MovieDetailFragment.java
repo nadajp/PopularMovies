@@ -2,6 +2,7 @@ package com.nadajp.popularmovies;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -61,11 +62,18 @@ public class MovieDetailFragment extends Fragment {
             mSynopsis = mMovie.getSynopsis();
 
             mTxtTitle.setText(mTitle);
-            String year = mReleaseDate.substring(0, 4);
-            mTxtReleaseDate.setText(year);
+            if (mReleaseDate != null && !mReleaseDate.isEmpty() && !mReleaseDate.matches("null")) {
+                Log.i(LOG_TAG, "Release date: " + mReleaseDate);
+                String year = mReleaseDate.substring(0, 4);
+                mTxtReleaseDate.setText(year);
+            } else {
+                mTxtReleaseDate.setText(R.string.NA);
+            }
             mTxtRating.setText(mRating + "/10");
             if (mSynopsis != null && !mSynopsis.matches("null")) {
                 mTxtSynopsis.setText(mSynopsis);
+            } else {
+                mTxtSynopsis.setText(R.string.no_synopsis);
             }
             Picasso.with(this.getActivity()).
                     load(BASE_URL + mPosterPath).
@@ -73,7 +81,6 @@ public class MovieDetailFragment extends Fragment {
                     error(R.drawable.error).
                     into(mImgPoster);
         }
-
         return view;
     }
 

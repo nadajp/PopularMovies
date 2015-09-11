@@ -1,6 +1,11 @@
 package com.nadajp.popularmovies;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -13,7 +18,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.GridView;
+import android.widget.LinearLayout;
 
 import com.nadajp.popularmovies.utils.Utils;
 
@@ -40,6 +47,10 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     public int mSortType;              // SORT_POPULAR = 0, SORT_RATING = 1
     ArrayList<Movie> mMovies = null;   // List to store all downloaded movie data
     GridView mGrid;                    // Grid view for displaying movie posters
+    LinearLayout mLayoutNoNetwork;     // Layout that is displayed if there is no available network
+    Button mBtnRefresh;                // Button that the user can click to refresh data after
+    // network was unavailable
+    boolean mbHasNetwork;              // is network available
 
     public MovieGridFragment() {
     }
@@ -59,14 +70,44 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_movie_grid, container, false);
+        mLayoutNoNetwork = (LinearLayout) rootView.findViewById(R.id.layoutNoNetwork);
+        mBtnRefresh = (Button) rootView.findViewById(R.id.btnRefresh);
         mGrid = (GridView) rootView.findViewById(R.id.gridView);
         mAdapter = new ImageAdapter(this.getActivity(), mMovies);
         mGrid.setAdapter(mAdapter);
         mGrid.setOnItemClickListener(this);
+        mBtnRefresh.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                refreshData();
+            }
+        });
         if (savedInstanceState == null) {
-            new DownloadMoviesTask().execute();
+            refreshData();
+        } else {
+            mbHasNetwork = savedInstanceState.getBoolean(Utils.HAS_NETWORK);
+            if (mbHasNetwork) {
+                mLayoutNoNetwork.setVisibility(View.GONE);
+            } else {
+                mLayoutNoNetwork.setVisibility(View.VISIBLE);
+            }
         }
         return rootView;
+    }
+
+    public void refreshData() {
+        if (isNetworkAvailable()) {
+            Log.i(LOG_TAG, "Network available, downloading movies...");
+            mLayoutNoNetwork.setVisibility(View.GONE);
+            mbHasNetwork = true;
+            new DownloadMoviesTask().execute();
+        } else {
+            Log.i(LOG_TAG, "Network NOT available, display alert...");
+            displayNoNetworkAlert(this.getActivity());
+            //mGrid.setVisibility(View.INVISIBLE);
+            mbHasNetwork = false;
+            mLayoutNoNetwork.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -103,11 +144,26 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
             item.setTitle(getSettingsText());
             ActionBar ab = ((AppCompatActivity) getActivity()).getSupportActionBar();
             ab.setTitle(getTitle());
-            new DownloadMoviesTask().execute();
+            refreshData();
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void displayNoNetworkAlert(Context context) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage("Network Unavailable.");
+        builder.setCancelable(true);
+        builder.setPositiveButton("OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+
+        AlertDialog alert11 = builder.create();
+        alert11.show();
     }
 
     @Override
@@ -131,6 +187,16 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         if (mMovies != null && mMovies.size() > 0) {
             outState.putParcelableArrayList(Utils.MOVIES_KEY, mMovies);
         }
+        outState.putBoolean(Utils.HAS_NETWORK, mbHasNetwork);
+    }
+
+    public boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager)
+                getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+        // if no network is available networkInfo will be null
+        // otherwise check if we are connected
+        return networkInfo != null && networkInfo.isConnected();
     }
 
     private class DownloadMoviesTask extends AsyncTask<Void, Void, ArrayList<Movie>> {
@@ -140,7 +206,7 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
 
         /* convert returned result into list of movies */
         private ArrayList<Movie> getResultsFromJson(String json) throws JSONException {
-            Log.i(LOG_TAG, "JSON: " + json);
+            //Log.i(LOG_TAG, "JSON: " + json);
 
             JSONObject urlJson = new JSONObject(json);
             JSONArray resultsArray = urlJson.getJSONArray("results");

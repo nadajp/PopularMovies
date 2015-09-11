@@ -6,4 +6,8 @@
     <string name="title_top_rated">Top Rated Movies</string>
     <string name="title_most_popular">Most Popular Movies</string>
     <string name="title_activity_movie_detail">Movie Detail</string>
+    <string name="NA">N/A</string>
+    <string name="no_synopsis">Synopsis not available.</string>
+    <string name="no_network">Network not available. Please try again later.</string>
+    <string name="try_again">Try Again!</string>
 </resources>

@@ -13,6 +13,7 @@ public class Utils {
     public static final String MOVIES_KEY = "movies";
     public static final String SHARED_PREFS_FILENAME = "com.nadajp.popularmovies.shared_prefs";
     public static final String SORT_TYPE = "sort_type";
+    public static final String HAS_NETWORK = "has_network";
     public static final int SORT_POPULAR = 0;
     public static final int SORT_RATING = 1;
 
