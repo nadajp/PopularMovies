@@ -11,6 +11,8 @@ public class Utils {
 
     public static final String MOVIE_KEY = "movie";
     public static final String MOVIES_KEY = "movies";
+    public static final String TRAILERS_KEY = "trailers";
+    public static final String REVIEWS_KEY = "reviews";
     public static final String SHARED_PREFS_FILENAME = "com.nadajp.popularmovies.shared_prefs";
     public static final String SORT_TYPE = "sort_type";
     public static final String HAS_NETWORK = "has_network";
