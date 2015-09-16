@@ -28,15 +28,12 @@ public class MovieDetailActivity extends AppCompatActivity {
             MovieDetailFragment fragment = new MovieDetailFragment();
             Bundle args;
             if (savedInstanceState != null) {
-                args = savedInstanceState.getParcelable(Utils.MOVIE_KEY);
-                fragment.setArguments(args);
                 getSupportFragmentManager()
                         .beginTransaction()
                         .show(fragment)
                         .commit();
             } else {
                 args = getIntent().getBundleExtra(Utils.MOVIE_KEY);
-
                 fragment.setArguments(args);
                 getSupportFragmentManager()
                         .beginTransaction()

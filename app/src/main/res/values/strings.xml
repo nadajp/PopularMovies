@@ -10,4 +10,6 @@
     <string name="no_synopsis">Synopsis not available.</string>
     <string name="no_network">Network not available. Please try again later.</string>
     <string name="try_again">Try Again!</string>
+    <string name="reviews">Reviews:</string>
+    <string name="trailers">Trailers:</string>
 </resources>

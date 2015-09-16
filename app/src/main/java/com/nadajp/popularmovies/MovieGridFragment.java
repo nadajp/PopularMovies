@@ -201,7 +201,7 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
 
     private class DownloadMoviesTask extends AsyncTask<Void, Void, ArrayList<Movie>> {
 
-        public static final String API_KEY = "942a26a880fe217a46e11613b4ec7059";  // Insert your movie db api key here
+        public static final String API_KEY = "";  // Insert your movie db api key here
         private static final String LOG_TAG = "DownloadMoviesTask";
 
         /* convert returned result into list of movies */

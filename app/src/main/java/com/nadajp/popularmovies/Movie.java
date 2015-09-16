@@ -3,17 +3,19 @@ package com.nadajp.popularmovies;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.ArrayList;
+
 /**
  * Created by nadajp on 7/14/15.
  * Movie object, used to pass movie data between fragments
  */
 public class Movie implements Parcelable {
 
-    public static final Parcelable.Creator<Movie> CREATOR
-            = new Parcelable.Creator<Movie>() {
-        public Movie createFromParcel(Parcel in) {
-            return new Movie(in);
+    public static final Parcelable.Creator<Movie> CREATOR = new Parcelable.Creator<Movie>() {
+        public Movie createFromParcel(Parcel source) {
+            return new Movie(source);
         }
+
         public Movie[] newArray(int size) {
             return new Movie[size];
         }
@@ -24,9 +26,8 @@ public class Movie implements Parcelable {
     private String mReleaseDate;
     private String mSynopsis;
     private String mRating;
-
-    public Movie() {
-    }
+    private ArrayList<Trailer> mTrailers = new ArrayList<Trailer>();
+    private ArrayList<Review> mReviews = new ArrayList<Review>();
 
     public Movie(String id, String title, String posterPath, String releaseDate, String synopsis, String rating) {
         mId = id;
@@ -37,26 +38,35 @@ public class Movie implements Parcelable {
         mRating = rating;
     }
 
-    private Movie(Parcel in) {
-        mId = in.readString();
-        mTitle = in.readString();
-        mPosterPath = in.readString();
-        mReleaseDate = in.readString();
-        mSynopsis = in.readString();
-        mRating = in.readString();
+    public Movie() {
     }
 
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(mId);
-        dest.writeString(mTitle);
-        dest.writeString(mPosterPath);
-        dest.writeString(mReleaseDate);
-        dest.writeString(mSynopsis);
-        dest.writeString(mRating);
+    protected Movie(Parcel in) {
+        this.mId = in.readString();
+        this.mTitle = in.readString();
+        this.mPosterPath = in.readString();
+        this.mReleaseDate = in.readString();
+        this.mSynopsis = in.readString();
+        this.mRating = in.readString();
+        this.mTrailers = in.createTypedArrayList(Trailer.CREATOR);
+        this.mReviews = in.createTypedArrayList(Review.CREATOR);
     }
 
+    @Override
     public int describeContents() {
         return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.mId);
+        dest.writeString(this.mTitle);
+        dest.writeString(this.mPosterPath);
+        dest.writeString(this.mReleaseDate);
+        dest.writeString(this.mSynopsis);
+        dest.writeString(this.mRating);
+        dest.writeTypedList(mTrailers);
+        dest.writeTypedList(mReviews);
     }
 
     public String getId() {
@@ -105,5 +115,21 @@ public class Movie implements Parcelable {
 
     public void setRating(String rating) {
         mRating = rating;
+    }
+
+    public ArrayList<Trailer> getTrailers() {
+        return mTrailers;
+    }
+
+    public void setTrailers(ArrayList<Trailer> trailers) {
+        mTrailers = trailers;
+    }
+
+    public ArrayList<Review> getReviews() {
+        return mReviews;
+    }
+
+    public void setReviews(ArrayList<Review> reviews) {
+        mReviews = reviews;
     }
 }
