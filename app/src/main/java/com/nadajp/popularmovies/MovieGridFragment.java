@@ -85,38 +85,25 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         if (mSortType == Utils.SORT_FAVORITES) {
             // Display favourite movies from database
             loadMoviesFromDatabase();
-        } else {  // load them from API
-            mBtnRefresh.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    refreshData();
-                }
-            });
-            if (savedInstanceState == null) {
-                refreshData();
-            } else {
-                mbHasNetwork = savedInstanceState.getBoolean(Utils.HAS_NETWORK);
-                if (mbHasNetwork) {
-                    mLayoutNoNetwork.setVisibility(View.GONE);
-                } else {
-                    mLayoutNoNetwork.setVisibility(View.VISIBLE);
-                }
-            }
+        } else if (savedInstanceState == null) {
+            refreshData();
         }
         return rootView;
     }
 
-    private void refreshData() {
+    private boolean refreshData() {
         if (isNetworkAvailable()) {
             Log.i(LOG_TAG, "Network available, downloading movies...");
-            mLayoutNoNetwork.setVisibility(View.GONE);
             mbHasNetwork = true;
             new DownloadMoviesTask().execute();
+            return true;
         } else {
-            Log.i(LOG_TAG, "Network NOT available, display alert...");
+            Log.i(LOG_TAG, "Network NOT available, showing only saved movies...");
             displayNoNetworkAlert(this.getActivity());
             mbHasNetwork = false;
-            mLayoutNoNetwork.setVisibility(View.VISIBLE);
+            mSortType = Utils.SORT_FAVORITES;
+            loadMoviesFromDatabase();
+            return false;
         }
     }
 
@@ -148,7 +135,6 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         mSortPopular = menu.findItem(R.id.action_sort_popular);
         mSortFavourite = menu.findItem(R.id.action_favourites);
         mSortRating = menu.findItem(R.id.action_sort_rating);
-
         switch (mSortType) {
             case Utils.SORT_RATING:
                 mSortRating.setVisible(false);
@@ -191,16 +177,20 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         int id = item.getItemId();
         switch (id) {
             case R.id.action_sort_popular:
+                if (!refreshData()) {
+                    return true;
+                }
                 mSortType = Utils.SORT_POPULAR;
                 mSortRating.setVisible(true);
                 mSortFavourite.setVisible(true);
-                refreshData();
                 break;
             case R.id.action_sort_rating:
+                if (!refreshData()) {
+                    return true;
+                }
                 mSortType = Utils.SORT_RATING;
                 mSortFavourite.setVisible(true);
                 mSortPopular.setVisible(true);
-                refreshData();
                 break;
             case R.id.action_favourites:
                 mSortType = Utils.SORT_FAVORITES;
@@ -228,8 +218,8 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
                     }
                 });
 
-        AlertDialog alert11 = builder.create();
-        alert11.show();
+        AlertDialog alert = builder.create();
+        alert.show();
     }
 
     @Override

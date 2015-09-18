@@ -42,7 +42,6 @@
         android:layout_marginStart="@dimen/notification_large_icon_width"
         android:layout_toLeftOf="@id/cancel_action"
         android:layout_toStartOf="@id/cancel_action" />
-
     <LinearLayout
         android:id="@+id/media_actions"
         android:layout_width="match_parent"
@@ -54,7 +53,6 @@
         android:orientation="horizontal">
         <!-- media buttons will be added here -->
     </LinearLayout>
-
     <ImageView
         android:id="@+id/action_divider"
         android:layout_width="match_parent"

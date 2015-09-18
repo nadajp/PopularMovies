@@ -57,7 +57,6 @@
         android:orientation="horizontal">
         <!-- media buttons will be added here -->
     </LinearLayout>
-
     <ImageView
         android:id="@+id/action_divider"
         android:layout_width="match_parent"

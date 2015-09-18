@@ -64,14 +64,20 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
     LinearLayout mLayoutTrailers;
     LinearLayout mLayoutReviews;
     ImageView mImgFavourite;
-    ArrayList<Review> mReviews = new ArrayList<>();
-    ArrayList<Trailer> mTrailers = new ArrayList<>();
-    private Movie mMovie;                 // movie object contains all movie details
+    ArrayList<Review> mReviews;
+    ArrayList<Trailer> mTrailers;
+    private Movie mMovie;                  // movie object contains all movie details
     private Boolean mIsFavourite = false;  // is this movie currently marked as favourite?
     private ContentResolver mResolver;    // used for communicating with the content provider
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        if (savedInstanceState == null || !savedInstanceState.containsKey(Utils.TRAILERS_KEY)) {
+            mTrailers = new ArrayList<>();
+        }
+        if (savedInstanceState == null || !savedInstanceState.containsKey(Utils.REVIEWS_KEY)) {
+            mReviews = new ArrayList<>();
+        }
         super.onCreate(savedInstanceState);
     }
 
@@ -96,8 +102,12 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
         if (savedInstanceState != null) {
             Log.i(LOG_TAG, "Getting movie from saved instance state...");
             mMovie = savedInstanceState.getParcelable(Utils.MOVIE_KEY);
-            mTrailers = savedInstanceState.getParcelableArrayList(Utils.TRAILERS_KEY);
-            mReviews = savedInstanceState.getParcelableArrayList(Utils.REVIEWS_KEY);
+            if (savedInstanceState.containsKey(Utils.TRAILERS_KEY)) {
+                mTrailers = savedInstanceState.getParcelableArrayList(Utils.TRAILERS_KEY);
+            }
+            if (savedInstanceState.containsKey(Utils.REVIEWS_KEY)) {
+                mReviews = savedInstanceState.getParcelableArrayList(Utils.REVIEWS_KEY);
+            }
             Log.i(LOG_TAG, "ID: " + mMovie.getId());
             checkFavourites();
         } else if (getArguments() != null) {
