@@ -18,6 +18,7 @@ public class Utils {
     public static final String HAS_NETWORK = "has_network";
     public static final int SORT_POPULAR = 0;
     public static final int SORT_RATING = 1;
+    public static final int SORT_FAVORITES = 2;
 
 
     public static void setSortType(Context context, int type) {

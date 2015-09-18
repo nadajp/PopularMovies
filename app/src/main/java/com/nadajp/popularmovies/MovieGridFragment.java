@@ -22,6 +22,8 @@ import android.widget.Button;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 
+import com.nadajp.popularmovies.provider.movie.MovieCursor;
+import com.nadajp.popularmovies.provider.movie.MovieSelection;
 import com.nadajp.popularmovies.utils.Utils;
 
 import org.json.JSONArray;
@@ -51,6 +53,9 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     Button mBtnRefresh;                // Button that the user can click to refresh data after
     // network was unavailable
     boolean mbHasNetwork;              // is network available
+    MenuItem mSortPopular;
+    MenuItem mSortRating;
+    MenuItem mSortFavourite;
 
     public MovieGridFragment() {
     }
@@ -76,26 +81,32 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         mAdapter = new ImageAdapter(this.getActivity(), mMovies);
         mGrid.setAdapter(mAdapter);
         mGrid.setOnItemClickListener(this);
-        mBtnRefresh.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+
+        if (mSortType == Utils.SORT_FAVORITES) {
+            // Display favourite movies from database
+            loadMoviesFromDatabase();
+        } else {  // load them from API
+            mBtnRefresh.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    refreshData();
+                }
+            });
+            if (savedInstanceState == null) {
                 refreshData();
-            }
-        });
-        if (savedInstanceState == null) {
-            refreshData();
-        } else {
-            mbHasNetwork = savedInstanceState.getBoolean(Utils.HAS_NETWORK);
-            if (mbHasNetwork) {
-                mLayoutNoNetwork.setVisibility(View.GONE);
             } else {
-                mLayoutNoNetwork.setVisibility(View.VISIBLE);
+                mbHasNetwork = savedInstanceState.getBoolean(Utils.HAS_NETWORK);
+                if (mbHasNetwork) {
+                    mLayoutNoNetwork.setVisibility(View.GONE);
+                } else {
+                    mLayoutNoNetwork.setVisibility(View.VISIBLE);
+                }
             }
         }
         return rootView;
     }
 
-    public void refreshData() {
+    private void refreshData() {
         if (isNetworkAvailable()) {
             Log.i(LOG_TAG, "Network available, downloading movies...");
             mLayoutNoNetwork.setVisibility(View.GONE);
@@ -104,10 +115,23 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         } else {
             Log.i(LOG_TAG, "Network NOT available, display alert...");
             displayNoNetworkAlert(this.getActivity());
-            //mGrid.setVisibility(View.INVISIBLE);
             mbHasNetwork = false;
             mLayoutNoNetwork.setVisibility(View.VISIBLE);
         }
+    }
+
+    private void loadMoviesFromDatabase() {
+        mMovies.clear();
+        MovieCursor c = new MovieSelection().query(this.getActivity().getContentResolver());
+        int i = 0;
+        while (c.moveToNext()) {
+            mMovies.add(i++,
+                    new Movie(c.getMovieId(), c.getTitle(),
+                            c.getPosterPath(), c.getReleaseDate(),
+                            c.getSynopsis(), c.getRating()));
+        }
+        c.close();
+        mAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -121,34 +145,76 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
         super.onPrepareOptionsMenu(menu);
-        MenuItem sort = menu.findItem(R.id.action_sort);
-        sort.setTitle(getSettingsText());
+        mSortPopular = menu.findItem(R.id.action_sort_popular);
+        mSortFavourite = menu.findItem(R.id.action_favourites);
+        mSortRating = menu.findItem(R.id.action_sort_rating);
+
+        switch (mSortType) {
+            case Utils.SORT_RATING:
+                mSortRating.setVisible(false);
+                break;
+            case Utils.SORT_FAVORITES:
+                mSortFavourite.setVisible(false);
+                break;
+            case Utils.SORT_POPULAR:
+            default:
+                mSortPopular.setVisible(false);
+        }
     }
 
     private String getSettingsText() {
-        return mSortType == 0 ? getString(R.string.action_sort_rating)
-                : getString(R.string.action_sort_popular);
+        switch (mSortType) {
+            case Utils.SORT_RATING:
+                return getString(R.string.action_sort_rating);
+            case Utils.SORT_FAVORITES:
+                return getString(R.string.action_sort_favourites);
+            case Utils.SORT_POPULAR:
+            default:
+                return getString(R.string.action_sort_popular);
+        }
     }
 
     private String getTitle() {
-        return mSortType == 0 ? getString(R.string.title_most_popular)
-                : getString(R.string.title_top_rated);
+        switch (mSortType) {
+            case Utils.SORT_RATING:
+                return getString(R.string.title_top_rated);
+            case Utils.SORT_FAVORITES:
+                return getString(R.string.title_favourite);
+            case Utils.SORT_POPULAR:
+            default:
+                return getString(R.string.title_most_popular);
+        }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-
-        if (id == R.id.action_sort) {
-            mSortType = mSortType == 0 ? 1 : 0;
-            item.setTitle(getSettingsText());
-            ActionBar ab = ((AppCompatActivity) getActivity()).getSupportActionBar();
-            ab.setTitle(getTitle());
-            refreshData();
-            return true;
+        switch (id) {
+            case R.id.action_sort_popular:
+                mSortType = Utils.SORT_POPULAR;
+                mSortRating.setVisible(true);
+                mSortFavourite.setVisible(true);
+                refreshData();
+                break;
+            case R.id.action_sort_rating:
+                mSortType = Utils.SORT_RATING;
+                mSortFavourite.setVisible(true);
+                mSortPopular.setVisible(true);
+                refreshData();
+                break;
+            case R.id.action_favourites:
+                mSortType = Utils.SORT_FAVORITES;
+                mSortPopular.setVisible(true);
+                mSortRating.setVisible(true);
+                loadMoviesFromDatabase();
+                break;
         }
+        item.setTitle(getSettingsText());
+        ActionBar ab = ((AppCompatActivity) getActivity()).getSupportActionBar();
+        ab.setTitle(getTitle());
+        item.setVisible(false);
 
-        return super.onOptionsItemSelected(item);
+        return true;
     }
 
     private void displayNoNetworkAlert(Context context) {
@@ -206,8 +272,6 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
 
         /* convert returned result into list of movies */
         private ArrayList<Movie> getResultsFromJson(String json) throws JSONException {
-            //Log.i(LOG_TAG, "JSON: " + json);
-
             JSONObject urlJson = new JSONObject(json);
             JSONArray resultsArray = urlJson.getJSONArray("results");
 

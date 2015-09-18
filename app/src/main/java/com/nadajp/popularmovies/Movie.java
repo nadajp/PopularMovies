@@ -3,8 +3,6 @@ package com.nadajp.popularmovies;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.util.ArrayList;
-
 /**
  * Created by nadajp on 7/14/15.
  * Movie object, used to pass movie data between fragments
@@ -26,8 +24,8 @@ public class Movie implements Parcelable {
     private String mReleaseDate;
     private String mSynopsis;
     private String mRating;
-    private ArrayList<Trailer> mTrailers = new ArrayList<Trailer>();
-    private ArrayList<Review> mReviews = new ArrayList<Review>();
+    //private ArrayList<Trailer> mTrailers = new ArrayList<Trailer>();
+    //private ArrayList<Review> mReviews = new ArrayList<Review>();
 
     public Movie(String id, String title, String posterPath, String releaseDate, String synopsis, String rating) {
         mId = id;
@@ -48,8 +46,8 @@ public class Movie implements Parcelable {
         this.mReleaseDate = in.readString();
         this.mSynopsis = in.readString();
         this.mRating = in.readString();
-        this.mTrailers = in.createTypedArrayList(Trailer.CREATOR);
-        this.mReviews = in.createTypedArrayList(Review.CREATOR);
+        //this.mTrailers = in.createTypedArrayList(Trailer.CREATOR);
+        //this.mReviews = in.createTypedArrayList(Review.CREATOR);
     }
 
     @Override
@@ -65,8 +63,8 @@ public class Movie implements Parcelable {
         dest.writeString(this.mReleaseDate);
         dest.writeString(this.mSynopsis);
         dest.writeString(this.mRating);
-        dest.writeTypedList(mTrailers);
-        dest.writeTypedList(mReviews);
+        //dest.writeTypedList(mTrailers);
+        //dest.writeTypedList(mReviews);
     }
 
     public String getId() {
@@ -117,7 +115,7 @@ public class Movie implements Parcelable {
         mRating = rating;
     }
 
-    public ArrayList<Trailer> getTrailers() {
+   /* public ArrayList<Trailer> getTrailers() {
         return mTrailers;
     }
 
@@ -131,5 +129,5 @@ public class Movie implements Parcelable {
 
     public void setReviews(ArrayList<Review> reviews) {
         mReviews = reviews;
-    }
+    }*/
 }

@@ -62,11 +62,22 @@
                 android:layout_toRightOf="@+id/imgPoster"
                 android:paddingBottom="5dp" />
 
+            <ImageView
+                android:id="@+id/imgFavourite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/txtRating"
+                android:layout_toEndOf="@+id/imgPoster"
+                android:layout_toRightOf="@+id/imgPoster"
+                android:clickable="true"
+                android:paddingTop="@dimen/activity_vertical_margin"
+                android:src="@android:drawable/btn_star_big_off" />
+
             <TextView
                 android:id="@+id/txtSynopsis"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_below="@+id/txtRating"
+                android:layout_below="@+id/imgFavorite"
                 android:layout_toEndOf="@+id/imgPoster"
                 android:layout_toRightOf="@+id/imgPoster"
                 android:paddingRight="@dimen/activity_horizontal_margin"

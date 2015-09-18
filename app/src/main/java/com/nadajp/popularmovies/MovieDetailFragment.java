@@ -1,7 +1,11 @@
 package com.nadajp.popularmovies;
 
+import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -15,7 +19,17 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.nadajp.popularmovies.provider.movie.MovieColumns;
+import com.nadajp.popularmovies.provider.movie.MovieContentValues;
+import com.nadajp.popularmovies.provider.movie.MovieSelection;
+import com.nadajp.popularmovies.provider.review.ReviewColumns;
+import com.nadajp.popularmovies.provider.review.ReviewCursor;
+import com.nadajp.popularmovies.provider.review.ReviewSelection;
+import com.nadajp.popularmovies.provider.trailer.TrailerColumns;
+import com.nadajp.popularmovies.provider.trailer.TrailerCursor;
+import com.nadajp.popularmovies.provider.trailer.TrailerSelection;
 import com.nadajp.popularmovies.utils.Utils;
 import com.squareup.picasso.Picasso;
 
@@ -36,11 +50,11 @@ import java.util.ArrayList;
  * Created by nadajp on 7/13/15.
  * Shows Movie details: poster image, synopsis, rating and release date
  */
-public class MovieDetailFragment extends Fragment {
+public class MovieDetailFragment extends Fragment implements View.OnClickListener {
 
     public static final String LOG_TAG = "MovieDetailFragment";
     public static final String BASE_URL = "http://image.tmdb.org/t/p/w342/";
-
+    public String mId;                   // movie id, used for fetching data from API
     // UI elements
     ImageView mImgPoster;
     TextView mTxtTitle;
@@ -49,16 +63,12 @@ public class MovieDetailFragment extends Fragment {
     TextView mTxtRating;
     LinearLayout mLayoutTrailers;
     LinearLayout mLayoutReviews;
+    ImageView mImgFavourite;
     ArrayList<Review> mReviews = new ArrayList<>();
     ArrayList<Trailer> mTrailers = new ArrayList<>();
-
-    private String mId;
-    private String mTitle;
-    private String mReleaseDate;
-    private String mSynopsis;
-    private String mRating;
-    private String mPosterPath;
-    private Movie mMovie;
+    private Movie mMovie;                 // movie object contains all movie details
+    private Boolean mIsFavourite = false;  // is this movie currently marked as favourite?
+    private ContentResolver mResolver;    // used for communicating with the content provider
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -78,58 +88,97 @@ public class MovieDetailFragment extends Fragment {
         mTxtSynopsis = (TextView) view.findViewById(R.id.txtSynopsis);
         mLayoutTrailers = (LinearLayout) view.findViewById(R.id.layoutTrailers);
         mLayoutReviews = (LinearLayout) view.findViewById(R.id.layoutReviews);
+        mImgFavourite = (ImageView) view.findViewById(R.id.imgFavourite);
+        mImgFavourite.setOnClickListener(this);
+
+        mResolver = getActivity().getContentResolver();
 
         if (savedInstanceState != null) {
             Log.i(LOG_TAG, "Getting movie from saved instance state...");
             mMovie = savedInstanceState.getParcelable(Utils.MOVIE_KEY);
-            mTrailers = mMovie.getTrailers();
-            if (mTrailers.size() > 0) {
-                showTrailers();
-            }
-            mReviews = mMovie.getReviews();
-            if (mReviews.size() > 0) {
-                showReviews();
-            }
+            mTrailers = savedInstanceState.getParcelableArrayList(Utils.TRAILERS_KEY);
+            mReviews = savedInstanceState.getParcelableArrayList(Utils.REVIEWS_KEY);
             Log.i(LOG_TAG, "ID: " + mMovie.getId());
+            checkFavourites();
         } else if (getArguments() != null) {
             Log.i(LOG_TAG, "Getting movie from intent...");
             Bundle args = getArguments();
             mMovie = args.getParcelable(Utils.MOVIE_KEY);
             Log.i(LOG_TAG, "ID from Intent: " + mMovie.getId());
-            if (isNetworkAvailable()) {
+
+            checkFavourites();
+            if (mIsFavourite) {
+                // load movie details from database
+                loadMovieFromDatabase();
+            } else if (isNetworkAvailable()) {
                 new DownloadDetailsTask().execute();
             }
         }
+
         mId = mMovie.getId();
-        Log.i(LOG_TAG, "ID again: " + mMovie.getId());
+        String title = mMovie.getTitle();
+        String posterPath = mMovie.getPosterPath();
+        String releaseDate = mMovie.getReleaseDate();
+        String rating = mMovie.getRating();
+        String synopsis = mMovie.getSynopsis();
 
-        mTitle = mMovie.getTitle();
-        mPosterPath = mMovie.getPosterPath();
-        mReleaseDate = mMovie.getReleaseDate();
-        mRating = mMovie.getRating();
-        mSynopsis = mMovie.getSynopsis();
-
-        mTxtTitle.setText(mTitle);
-        if (mReleaseDate != null && !mReleaseDate.isEmpty() && !mReleaseDate.matches("null")) {
-            Log.i(LOG_TAG, "Release date: " + mReleaseDate);
-            String year = mReleaseDate.substring(0, 4);
+        mTxtTitle.setText(title);
+        if (releaseDate != null && !releaseDate.isEmpty() && !releaseDate.matches("null")) {
+            Log.i(LOG_TAG, "Release date: " + releaseDate);
+            String year = releaseDate.substring(0, 4);
             mTxtReleaseDate.setText(year);
         } else {
             mTxtReleaseDate.setText(R.string.NA);
         }
-        mTxtRating.setText(mRating + "/10");
-        if (mSynopsis != null && !mSynopsis.matches("null")) {
-            mTxtSynopsis.setText(mSynopsis);
+        mTxtRating.setText(rating + "/10");
+        if (synopsis != null && !synopsis.matches("null")) {
+            mTxtSynopsis.setText(synopsis);
         } else {
             mTxtSynopsis.setText(R.string.no_synopsis);
         }
         Picasso.with(this.getActivity()).
-                load(BASE_URL + mPosterPath).
+                load(BASE_URL + posterPath).
                 placeholder(R.drawable.loading).
                 error(R.drawable.error).
                 into(mImgPoster);
 
+        if (mTrailers.size() > 0) {
+            showTrailers();
+        }
+        if (mReviews.size() > 0) {
+            showReviews();
+        }
+
         return view;
+    }
+
+    private void loadMovieFromDatabase() {
+        TrailerSelection trailerSel = new TrailerSelection();
+        trailerSel.moviedbId(mMovie.getId());
+        TrailerCursor tc = trailerSel.query(mResolver);
+        int i = 0;
+        while (tc.moveToNext()) {
+            mTrailers.add(i++, new Trailer(tc.getName(), tc.getSource()));
+        }
+        tc.close();
+        i = 0;
+        ReviewSelection reviewSel = new ReviewSelection();
+        reviewSel.moviedbId(mMovie.getId());
+        ReviewCursor rc = reviewSel.query(mResolver);
+        while (rc.moveToNext()) {
+            mReviews.add(i++, new Review(rc.getAuthor(), rc.getContent()));
+        }
+        rc.close();
+    }
+
+    private void checkFavourites() {
+        MovieSelection where = new MovieSelection();
+        where.movieId(mMovie.getId());
+        Cursor c = where.query(mResolver);
+        if (c.getCount() > 0) {
+            mIsFavourite = true;
+            mImgFavourite.setImageResource(android.R.drawable.btn_star_big_on);
+        }
     }
 
     public boolean isNetworkAvailable() {
@@ -147,6 +196,12 @@ public class MovieDetailFragment extends Fragment {
         if (mMovie != null) {
             Log.i(LOG_TAG, "Saving movie to saveInstanceState");
             outState.putParcelable(Utils.MOVIE_KEY, mMovie);
+        }
+        if (mTrailers.size() > 0) {
+            outState.putParcelableArrayList(Utils.TRAILERS_KEY, mTrailers);
+        }
+        if (mReviews.size() > 0) {
+            outState.putParcelableArrayList(Utils.REVIEWS_KEY, mReviews);
         }
     }
 
@@ -170,7 +225,6 @@ public class MovieDetailFragment extends Fragment {
 
         for (Review r : mReviews) {
             View v = inflater.inflate(R.layout.review, null);
-            //v.setPadding('0', '0', '0', '1');
             // fill in any details dynamically here
             TextView author = (TextView) v.findViewById(R.id.textAuthor);
             author.setText(r.getAuthor());
@@ -178,6 +232,80 @@ public class MovieDetailFragment extends Fragment {
             content.setText(r.getContent());
             mLayoutReviews.addView(v);
         }
+    }
+
+    /* This function handles the click on the Favorite button (star).
+       It adds/deletes the movie to/from the database using content provider.
+     */
+    @Override
+    public void onClick(View v) {
+        mIsFavourite = !mIsFavourite;
+        if (mIsFavourite) {
+            if (addToFavourites() != -1) {
+                Toast.makeText(this.getActivity(), "Added to favourites!", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this.getActivity(), "There was an error while saving to favourites", Toast.LENGTH_SHORT).show();
+            }
+            mImgFavourite.setImageResource(android.R.drawable.btn_star_big_on);
+        } else {
+            // delete
+            deleteFromFavourites();
+            mImgFavourite.setImageResource(android.R.drawable.btn_star_big_off);
+        }
+    }
+
+    private void deleteFromFavourites() {
+        MovieSelection where = new MovieSelection();
+        where.movieId(mMovie.getId());
+        where.delete(mResolver);
+        ReviewSelection whereReview = new ReviewSelection();
+        whereReview.moviedbId(mMovie.getId());
+        whereReview.delete(mResolver);
+        TrailerSelection whereTrailer = new TrailerSelection();
+        whereTrailer.moviedbId(mMovie.getId());
+        whereTrailer.delete(mResolver);
+    }
+
+    private long addToFavourites() {
+        MovieContentValues values = new MovieContentValues();
+        values.putMovieId(mMovie.getId()).
+                putTitle(mMovie.getTitle()).
+                putPosterPath(mMovie.getPosterPath()).
+                putReleaseDate(mMovie.getReleaseDate()).
+                putRating(mMovie.getRating()).
+                putSynopsis(mMovie.getSynopsis());
+
+        Uri uri = mResolver.insert(MovieColumns.CONTENT_URI, values.values());
+        int id = (int) ContentUris.parseId(uri);
+
+        if (id < 0) {
+            return id;
+        }
+
+        ContentValues[] contentValues = new ContentValues[mTrailers.size()];
+
+        int i = 0;
+        for (Trailer t : mTrailers) {
+            contentValues[i] = new ContentValues();
+            contentValues[i].put(TrailerColumns.MOVIEDB_ID, mId);
+            contentValues[i].put(TrailerColumns.NAME, t.getName());
+            contentValues[i++].put(TrailerColumns.SOURCE, t.getSource());
+        }
+
+        mResolver.bulkInsert(TrailerColumns.CONTENT_URI, contentValues);
+
+        ContentValues[] contentValues1 = new ContentValues[mReviews.size()];
+
+        i = 0;
+        for (Review r : mReviews) {
+            contentValues1[i] = new ContentValues();
+            contentValues1[i].put(ReviewColumns.MOVIEDB_ID, mId);
+            contentValues1[i].put(ReviewColumns.AUTHOR, r.getAuthor());
+            contentValues1[i++].put(ReviewColumns.CONTENT, r.getContent());
+        }
+        mResolver.bulkInsert(ReviewColumns.CONTENT_URI, contentValues1);
+
+        return id;
     }
 
     public class ResultsWrapper {
@@ -188,7 +316,7 @@ public class MovieDetailFragment extends Fragment {
             return mTrailers;
         }
 
-        public void setmTrailers(ArrayList<Trailer> mTrailers) {
+        public void setTrailers(ArrayList<Trailer> mTrailers) {
             this.mTrailers = mTrailers;
         }
 
@@ -196,7 +324,7 @@ public class MovieDetailFragment extends Fragment {
             return mReviews;
         }
 
-        public void setmReviews(ArrayList<Review> mReviews) {
+        public void setReviews(ArrayList<Review> mReviews) {
             this.mReviews = mReviews;
         }
     }
@@ -218,8 +346,8 @@ public class MovieDetailFragment extends Fragment {
             ArrayList<Trailer> trailers = new ArrayList();
             for (int i = 0; i < youtubeArray.length(); i++) {
                 JSONObject obj = youtubeArray.getJSONObject(i);
-            trailers.add(new Trailer(obj.getString("name"),
-                    obj.getString("source")));
+                trailers.add(new Trailer(obj.getString("name"),
+                        obj.getString("source")));
                 //mTrailerNames.add(i, obj.getString("name"));
                 //Log.i(LOG_TAG, "Trailer name: " + mTrailerNames.get(i) + "\n");
             }
@@ -229,20 +357,20 @@ public class MovieDetailFragment extends Fragment {
 
             ArrayList<Review> reviews = new ArrayList();
 
-        for (int i = 0; i < reviewsArray.length(); i++) {
-            JSONObject obj = reviewsArray.getJSONObject(i);
-            reviews.add(new Review(obj.getString("author"),
-                    obj.getString("content")));
-        }
+            for (int i = 0; i < reviewsArray.length(); i++) {
+                JSONObject obj = reviewsArray.getJSONObject(i);
+                reviews.add(new Review(obj.getString("author"),
+                        obj.getString("content")));
+            }
 
-        ResultsWrapper result = new ResultsWrapper();
-        result.setmTrailers(trailers);
-            result.setmReviews(reviews);
+            ResultsWrapper result = new ResultsWrapper();
+            result.setTrailers(trailers);
+            result.setReviews(reviews);
             return result;
         }
 
         @Override
-    protected ResultsWrapper doInBackground(Void... args) {
+        protected ResultsWrapper doInBackground(Void... args) {
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
             String jsonStr = null;
@@ -251,41 +379,41 @@ public class MovieDetailFragment extends Fragment {
                 // Construct the URL for moviedb api
                 Uri.Builder builder = new Uri.Builder();
                 builder.scheme("http").authority("api.themoviedb.org")
-                    .appendPath("3")
+                        .appendPath("3")
                         .appendPath("movie").appendPath(mId)
                         .appendQueryParameter("api_key", API_KEY)
                         .appendQueryParameter("append_to_response", "trailers%2Creviews");
 
                 String strUrl = "http://api.themoviedb.org/3/movie/" +
                         mId + "?api_key=" + API_KEY + "&append_to_response="
-                    + URLEncoder.encode("trailers,reviews", "UTF-8");
+                        + URLEncoder.encode("trailers,reviews", "UTF-8");
 
                 //URL url = new URL(builder.build().toString());
                 URL url = new URL(strUrl);
 
                 Log.i(LOG_TAG, "URI: " + url.toString());
-            // Create the request to moviedb api and open the connection
+                // Create the request to moviedb api and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
 
                 // Read the input stream into a String
-            InputStream inputStream = urlConnection.getInputStream();
-            StringBuffer buffer = new StringBuffer();
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
                 if (inputStream == null) {
-                return null;
+                    return null;
                 }
 
                 reader = new BufferedReader(new InputStreamReader(inputStream));
 
-            String line;
+                String line;
                 while ((line = reader.readLine()) != null) {
                     buffer.append(line + "\n");
-            }
+                }
 
-            if (buffer.length() == 0) {
-                return null;
-            }
+                if (buffer.length() == 0) {
+                    return null;
+                }
                 jsonStr = buffer.toString();
 
             } catch (IOException e) {
@@ -307,32 +435,32 @@ public class MovieDetailFragment extends Fragment {
 
                 try {
                     return getResultsFromJson(jsonStr);
-            } catch (JSONException e) {
+                } catch (JSONException e) {
                     Log.e(LOG_TAG, e.getMessage(), e);
                     e.printStackTrace();
-            }
+                }
             }
             return null;
-    }
+        }
 
         protected void onProgressUpdate(Integer... progress) {
         }
 
-    protected void onPostExecute(ResultsWrapper result) {
-        if (result != null) {
-            mTrailers = result.getTrailers();
-            mReviews = result.getReviews();
+        protected void onPostExecute(ResultsWrapper result) {
+            if (result != null) {
+                mTrailers = result.getTrailers();
+                mReviews = result.getReviews();
 
-            if (mTrailers != null) {
-                mMovie.setTrailers(mTrailers);
-                showTrailers();
-            }
-            if (mReviews != null) {
-                mMovie.setReviews(mReviews);
-                showReviews();
+                if (mTrailers != null) {
+                    // mMovie.setTrailers(mTrailers);
+                    showTrailers();
+                }
+                if (mReviews != null) {
+                    // mMovie.setReviews(mReviews);
+                    showReviews();
+                }
             }
         }
-    }
     }
 
     public class ClickPlayListener implements View.OnClickListener {
@@ -346,7 +474,6 @@ public class MovieDetailFragment extends Fragment {
         public void onClick(View v) {
             String link = "http://www.youtube.com/watch?v=" + mSource;
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(link)));
-    }
-
+        }
     }
 }
