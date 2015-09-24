@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -108,13 +109,13 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
             if (savedInstanceState.containsKey(Utils.REVIEWS_KEY)) {
                 mReviews = savedInstanceState.getParcelableArrayList(Utils.REVIEWS_KEY);
             }
-            Log.i(LOG_TAG, "ID: " + mMovie.getId());
+            //Log.i(LOG_TAG, "ID: " + mMovie.getId());
             checkFavourites();
         } else if (getArguments() != null) {
-            Log.i(LOG_TAG, "Getting movie from intent...");
+            //Log.i(LOG_TAG, "Getting movie from intent...");
             Bundle args = getArguments();
             mMovie = args.getParcelable(Utils.MOVIE_KEY);
-            Log.i(LOG_TAG, "ID from Intent: " + mMovie.getId());
+            //Log.i(LOG_TAG, "ID from Intent: " + mMovie.getId());
 
             checkFavourites();
             if (mIsFavourite) {
@@ -123,6 +124,10 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
             } else if (isNetworkAvailable()) {
                 new DownloadDetailsTask().execute();
             }
+        } else {
+            RelativeLayout layoutDetails = (RelativeLayout) view.findViewById(R.id.layoutMovieDetails);
+            layoutDetails.setVisibility(View.INVISIBLE);
+            return view;
         }
 
         mId = mMovie.getId();
@@ -134,7 +139,7 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
 
         mTxtTitle.setText(title);
         if (releaseDate != null && !releaseDate.isEmpty() && !releaseDate.matches("null")) {
-            Log.i(LOG_TAG, "Release date: " + releaseDate);
+            //Log.i(LOG_TAG, "Release date: " + releaseDate);
             String year = releaseDate.substring(0, 4);
             mTxtReleaseDate.setText(year);
         } else {
@@ -358,8 +363,6 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
                 JSONObject obj = youtubeArray.getJSONObject(i);
                 trailers.add(new Trailer(obj.getString("name"),
                         obj.getString("source")));
-                //mTrailerNames.add(i, obj.getString("name"));
-                //Log.i(LOG_TAG, "Trailer name: " + mTrailerNames.get(i) + "\n");
             }
 
             JSONObject objReviews = objJson.getJSONObject("reviews");
@@ -462,7 +465,6 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
                 mReviews = result.getReviews();
 
                 if (mTrailers != null) {
-                    // mMovie.setTrailers(mTrailers);
                     showTrailers();
                 }
                 if (mReviews != null) {

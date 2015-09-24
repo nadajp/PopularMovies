@@ -15,4 +15,6 @@
     <string name="reviews">Reviews:</string>
     <string name="trailers">Trailers:</string>
     <string name="favourite">Add Movie to Favourites</string>
+    <string name="title_item_list">Items</string>
+    <string name="title_item_detail">Item Detail</string>
 </resources>

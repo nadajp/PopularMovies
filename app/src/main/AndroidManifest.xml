@@ -10,9 +10,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
-
         <provider
-            android:name="com.nadajp.popularmovies.provider.MoviesProvider"
+            android:name=".provider.MoviesProvider"
             android:authorities="com.nadajp.popularmovies.provider"
             android:exported="false" />
 
@@ -28,7 +27,7 @@
         <activity
             android:name=".MovieDetailActivity"
             android:label="@string/title_activity_movie_detail"
-            android:parentActivityName=".MainActivity"></activity>
+            android:parentActivityName=".MainActivity" />
     </application>
 
 </manifest>

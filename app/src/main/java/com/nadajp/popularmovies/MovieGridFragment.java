@@ -1,9 +1,9 @@
 package com.nadajp.popularmovies;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -56,8 +56,33 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
     MenuItem mSortPopular;
     MenuItem mSortRating;
     MenuItem mSortFavourite;
+    OnMovieSelectedListener mMovieSelectedListener = null;
 
     public MovieGridFragment() {
+    }
+
+    public void setOnMovieSelectedListener(OnMovieSelectedListener listener) {
+        mMovieSelectedListener = listener;
+    }
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // Activities containing this fragment must implement its callbacks.
+        if (!(activity instanceof OnMovieSelectedListener)) {
+            throw new IllegalStateException("Activity must implement fragment's callbacks.");
+        }
+
+        mMovieSelectedListener = (OnMovieSelectedListener) activity;
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+
+        // Reset the active callbacks interface to the dummy implementation.
+        mMovieSelectedListener = null;
     }
 
     @Override
@@ -224,11 +249,9 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Intent intent = new Intent(this.getActivity(), MovieDetailActivity.class);
-        Bundle extras = new Bundle();
-        extras.putParcelable(Utils.MOVIE_KEY, mMovies.get(position));
-        intent.putExtra(Utils.MOVIE_KEY, extras);
-        startActivity(intent);
+        if (null != mMovieSelectedListener) {
+            mMovieSelectedListener.onMovieSelected(mMovies.get(position));
+        }
     }
 
     @Override
@@ -253,6 +276,11 @@ public class MovieGridFragment extends Fragment implements AdapterView.OnItemCli
         // if no network is available networkInfo will be null
         // otherwise check if we are connected
         return networkInfo != null && networkInfo.isConnected();
+    }
+
+    /* Must be implemented by host activity */
+    public interface OnMovieSelectedListener {
+        void onMovieSelected(Movie movie);
     }
 
     private class DownloadMoviesTask extends AsyncTask<Void, Void, ArrayList<Movie>> {
