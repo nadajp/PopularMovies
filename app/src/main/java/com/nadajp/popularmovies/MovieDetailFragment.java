@@ -12,8 +12,13 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -55,6 +60,7 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
 
     public static final String LOG_TAG = "MovieDetailFragment";
     public static final String BASE_URL = "http://image.tmdb.org/t/p/w342/";
+    public static final String BASE_YOUTUBE_URL = "http://www.youtube.com/watch?v=";
     public String mId;                   // movie id, used for fetching data from API
     // UI elements
     ImageView mImgPoster;
@@ -70,6 +76,7 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
     private Movie mMovie;                  // movie object contains all movie details
     private Boolean mIsFavourite = false;  // is this movie currently marked as favourite?
     private ContentResolver mResolver;    // used for communicating with the content provider
+    private ShareActionProvider mShareActionProvider;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -160,11 +167,46 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
         if (mTrailers.size() > 0) {
             showTrailers();
         }
+
         if (mReviews.size() > 0) {
             showReviews();
         }
 
+        if (mShareActionProvider != null) {
+            mShareActionProvider.setShareIntent(createShareMovieIntent());
+            this.getActivity().invalidateOptionsMenu();
+        }
+
+        setHasOptionsMenu(true);
+
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        inflater.inflate(R.menu.menu_movie_detail, menu);
+
+        // Retrieve the share menu item
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+
+        // Get the provider and hold onto it to set/change the share intent.
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+       // if (mTrailers != null && mTrailers.size() > 0) {
+            mShareActionProvider.setShareIntent(createShareMovieIntent());
+       // }
+    }
+
+    private Intent createShareMovieIntent() {
+        if (mTrailers != null && mTrailers.size() > 0) {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, BASE_YOUTUBE_URL + mTrailers.get(0).getSource());
+            //Log.i(LOG_TAG, "Share Intent: " + mTrailers.get(0).getSource());
+            return shareIntent;
+        }
+        else return null;
     }
 
     private void loadMovieFromDatabase() {
@@ -233,6 +275,8 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
             imgPlay.setOnClickListener(new ClickPlayListener(t.getSource()));
             mLayoutTrailers.addView(v);
         }
+        // Set the share intent if the shareactionprovider has been initialized
+
     }
 
     public void showReviews() {
@@ -468,8 +512,10 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
                     showTrailers();
                 }
                 if (mReviews != null) {
-                    // mMovie.setReviews(mReviews);
                     showReviews();
+                }
+                if (mShareActionProvider != null) {
+                    mShareActionProvider.setShareIntent(createShareMovieIntent());
                 }
             }
         }
@@ -484,7 +530,7 @@ public class MovieDetailFragment extends Fragment implements View.OnClickListene
 
         @Override
         public void onClick(View v) {
-            String link = "http://www.youtube.com/watch?v=" + mSource;
+            String link = BASE_YOUTUBE_URL + mSource;
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(link)));
         }
     }
