@@ -10,9 +10,10 @@ Features:
  - ability to select movie as favourite, which saves it to the local database to allow for offline viewing
  - ability to sort movies by highest rated, most popular, or favourite
  - tablet support
+ - allows user to share trailer link
 
-Movie database API key has been removed for privacy. 
+*Note: Movie database API key has been removed for privacy. 
 
-To use the app, go to https://www.themoviedb.org and obtain your API key, then insert it in MovieGridFragment.java inside DownloadMoviesTask:
+To use the app, go to https://www.themoviedb.org and obtain your API key, then insert it in MovieGridFragment.java inside DownloadMoviesTask and in MovieDetailFragment.java inside DownloadDetailsTask:
 
 public static final String API_KEY = ""; // Insert your movie db api key here
